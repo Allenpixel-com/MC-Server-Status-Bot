@@ -24,11 +24,17 @@ class MinecraftStatusBot(commands.Bot):
         for status in server_statuses:
             status_text = "🟢 線上" if status['online'] else "🔴 離線"
             ping_text = f"{status['ping']}ms" if status['online'] else "N/A"
-            player_count_text = f"{status['players_online']}/{status['players_max']}" if status['online'] else "N/A"
+            if status['online']:
+                if status['is_bungeecord']:
+                    player_count_text = f"總玩家人數：{status['players_online']}"
+                else:
+                    player_count_text = f"玩家人數：{status['players_online']}/{status['players_max']}"
+            else:
+                player_count_text = "玩家人數：N/A"
             
             embed.add_field(
                 name=status['name'], 
-                value=f"狀態：{status_text}\n延遲：{ping_text}\n玩家人數：{player_count_text}", 
+                value=f"狀態：{status_text}\n延遲：{ping_text}\n{player_count_text}", 
                 inline=False
             )
         
@@ -66,32 +72,17 @@ class MinecraftStatusBot(commands.Bot):
         self.next_update_time = time.time() + 30
         server_statuses = []
         servers = [
-            {"name": "節點伺服器", "host": "localhost", "port": 25565},
-            {"name": "分流1", "host": "localhost", "port": 25566},
-            {"name": "分流2", "host": "localhost", "port": 25567},
-            {"name": "分流3", "host": "localhost", "port": 25568}
+            {"name": "節點伺服器", "host": "example.tw", "port": 25565, "is_bungeecord": True},
+            {"name": "大廳分流", "host": "example.tw", "port": 25566, "is_bungeecord": False},
+            {"name": "生存分流", "host": "example.tw", "port": 25567, "is_bungeecord": False},
+            {"name": "床戰分流", "host": "example.tw", "port": 25568, "is_bungeecord": False}
         ]
-
-        total_players_online = 0
-        total_players_max = 0
 
         for server_info in servers:
             status = self.ping_server(server_info['host'], server_info['port'])
             status['name'] = server_info['name']
+            status['is_bungeecord'] = server_info['is_bungeecord']
             server_statuses.append(status)
-            if status['online']:
-                total_players_online += status['players_online']
-                total_players_max += status['players_max']
-
-        # 如果是 BungeeCord 伺服器，顯示總玩家人數
-        if total_players_max > 0:
-            server_statuses.append({
-                "name": "總玩家人數",
-                "online": True,
-                "ping": "N/A",
-                "players_online": total_players_online,
-                "players_max": total_players_max
-            })
 
         embed = self.create_server_embed(server_statuses)
 
@@ -133,8 +124,8 @@ def main():
     intents.message_content = True
     bot = MinecraftStatusBot(intents)
     
-    bot.set_status_channel(YOUR_CHANNEL_ID)
-    bot.run('YOUR_BOT_TOKEN')
+    bot.set_status_channel(CHANNEL_TOKEN)
+    bot.run('BOT_TOKEN')
 
 if __name__ == "__main__":
     main()
